@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+        }
+        .total-amount-container {
+            display: flex;
+            align-items: center;
+        }
+        .total-amount-button {
+            padding: 10px 20px;
+            font-size: 20px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        .total-amount-button:hover {
+            background-color: #45a049;
+        }
+        .total-amount-value {
+            font-size: 24px;
+            margin-left: 10px;
+            padding: 10px 20px;
+            border: 2px solid;
+            border-radius: 5px;
+        }
+        .buttons {
+            margin-top: 50px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .filter-container {
+            margin: 20px auto;
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            align-items: center;
+        }
+        .filter-container input {
+            padding: 5px;
+            font-size: 16px;
+        }
+        .filter-container button {
+            padding: 5px 10px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .clear-filter {
+            font-size: 16px;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: red;
+        }
+        .expenditure-row {
+            background-color: #f8d7da; /* Light red */
+        }
+        .income-row {
+            background-color: #d4edda; /* Light green */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Finance Tracker</h1>
+        <div class="total-amount-container">
+            <button class="total-amount-button" id="total-amount-button" onclick="location.href='data.html'">Total Amount</button>
+            <div class="total-amount-value" id="total-amount-value">₹0.00</div>
+        </div>
+    </div>
+    <div class="buttons">
+        <button style="background-color: #f8d7da;" onclick="location.href='expenditure.html'">Add Expenditure</button>
+        <button style="background-color: #d4edda;" onclick="location.href='income.html'">Add Income</button>
+    </div>
+    <div class="filter-container">
+        <div>
+            <label for="expenditure-filter">Filter Expenditure:</label>
+            <input type="datetime-local" id="expenditure-filter">
+            <button onclick="filterExpenditure()">Apply Filter</button>
+            <button class="clear-filter" onclick="clearExpenditureFilter()">✕</button>
+        </div>
+        <div>
+            <label for="income-filter">Filter Income:</label>
+            <input type="datetime-local" id="income-filter">
+            <button onclick="filterIncome()">Apply Filter</button>
+            <button class="clear-filter" onclick="clearIncomeFilter()">✕</button>
+        </div>
+    </div>
+    <div>
+        <h2>Expenditure</h2>
+        <table id="expenditure-table">
+            <thead>
+                <tr>
+                    <th>Date and Time</th>
+                    <th>Reason</th>
+                    <th>Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be added here -->
+            </tbody>
+        </table>
+    </div>
+    <div>
+        <h2>Income</h2>
+        <table id="income-table">
+            <thead>
+                <tr>
+                    <th>Date and Time</th>
+                    <th>Reason</th>
+                    <th>Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be added here -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        function formatCurrency(amount) {
+            return `₹${amount.toFixed(2)}`;
+        }
+
+        function updateTotalAmount() {
+            let totalAmount = parseFloat(localStorage.getItem('totalAmount')) || 0;
+            const totalAmountElement = document.getElementById('total-amount-value');
+            totalAmountElement.innerText = formatCurrency(totalAmount);
+
+            // Set border color based on amount
+            if (totalAmount <= 1000) {
+                totalAmountElement.style.borderColor = 'red';
+            } else if (totalAmount <= 2999) {
+                totalAmountElement.style.borderColor = 'blue';
+            } else {
+                totalAmountElement.style.borderColor = 'green';
+            }
+        }
+
+        function loadTransactions() {
+            const expenditureTable = document.getElementById('expenditure-table').getElementsByTagName('tbody')[0];
+            const incomeTable = document.getElementById('income-table').getElementsByTagName('tbody')[0];
+
+            let expenditures = JSON.parse(localStorage.getItem('expenditures')) || [];
+            let incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+
+            expenditures.forEach(transaction => {
+                const row = expenditureTable.insertRow();
+                row.className = 'expenditure-row';
+                row.insertCell(0).innerText = transaction.date;
+                row.insertCell(1).innerText = transaction.reason;
+                row.insertCell(2).innerText = formatCurrency(transaction.amount);
+            });
+
+            incomes.forEach(transaction => {
+                const row = incomeTable.insertRow();
+                row.className = 'income-row';
+                row.insertCell(0).innerText = transaction.date;
+                row.insertCell(1).innerText = transaction.reason;
+                row.insertCell(2).innerText = formatCurrency(transaction.amount);
+            });
+        }
+
+        function filterExpenditure() {
+            const filterDate = document.getElementById('expenditure-filter').value;
+            const [date, time] = filterDate.split('T');
+            const filterHours = time.split(':')[0];
+
+            localStorage.setItem('expenditureFilter', filterHours);
+            updateTables();
+        }
+
+        function filterIncome() {
+            const filterDate = document.getElementById('income-filter').value;
+            const [date, time] = filterDate.split('T');
+            const filterHours = time.split(':')[0];
+
+            localStorage.setItem('incomeFilter', filterHours);
+            updateTables();
+        }
+
+        function clearExpenditureFilter() {
+            localStorage.removeItem('expenditureFilter');
+            document.getElementById('expenditure-filter').value = '';
+            updateTables();
+        }
+
+        function clearIncomeFilter() {
+            localStorage.removeItem('incomeFilter');
+            document.getElementById('income-filter').value = '';
+            updateTables();
+        }
+
+        function updateTables() {
+            const expenditureTable = document.getElementById('expenditure-table').getElementsByTagName('tbody')[0];
+            const incomeTable = document.getElementById('income-table').getElementsByTagName('tbody')[0];
+
+            const filterExpenditureHours = localStorage.getItem('expenditureFilter');
+            const filterIncomeHours = localStorage.getItem('incomeFilter');
+
+            // Clear existing rows
+            expenditureTable.innerHTML = '';
+            incomeTable.innerHTML = '';
+
+            let expenditures = JSON.parse(localStorage.getItem('expenditures')) || [];
+            let incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+
+            expenditures.forEach(transaction => {
+                const transactionHours = new Date(transaction.date).getHours();
+                if (!filterExpenditureHours || transactionHours === parseInt(filterExpenditureHours)) {
+                    const row = expenditureTable.insertRow();
+                    row.className = 'expenditure-row';
+                    row.insertCell(0).innerText = transaction.date;
+                    row.insertCell(1).innerText = transaction.reason;
+                    row.insertCell(2).innerText = formatCurrency(transaction.amount);
+                }
+            });
+
+            incomes.forEach(transaction => {
+                const transactionHours = new Date(transaction.date).getHours();
+                if (!filterIncomeHours || transactionHours === parseInt(filterIncomeHours)) {
+                    const row = incomeTable.insertRow();
+                    row.className = 'income-row';
+                    row.insertCell(0).innerText = transaction.date;
+                    row.insertCell(1).innerText = transaction.reason;
+                    row.insertCell(2).innerText = formatCurrency(transaction.amount);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTotalAmount();
+            loadTransactions();
+            updateTables();
+        });
+    </script>
+</body>
+</html>
